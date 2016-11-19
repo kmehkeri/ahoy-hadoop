@@ -3,10 +3,11 @@
 
 Vagrant.configure(2) do |config|
   MASTERS = 1
-  SLAVES = 2
+  SLAVES = 3
 
   config.vm.box = "bento/centos-7.1"
   config.vm.provision "shell", path: "network.sh"
+  config.vm.provision "shell", path: "hadoop.sh"
 
   MASTERS.times do |n|
     config.vm.define "master#{n}" do |node| 
