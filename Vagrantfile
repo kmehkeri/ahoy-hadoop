@@ -3,10 +3,15 @@
 
 Vagrant.configure(2) do |config|
   MASTERS = 1
-  SLAVES = 3
+  SLAVES = 2
 
   config.vm.box = "bento/centos-7.1"
   config.vm.provision "ansible", playbook: "playbook.yml"
+
+  if Vagrant.has_plugin?('vagrant-cachier')
+    config.cache.scope = :box
+    config.cache.enable :yum
+  end
 
   MASTERS.times do |n|
     config.vm.define "master#{n}" do |node| 

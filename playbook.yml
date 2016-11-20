@@ -19,6 +19,12 @@
     - name: Create hadoop user
       user: name=hadoop
 
+    - name: Install packages
+      yum: name={{item}} state=present
+      with_items:
+        - vim
+        - java
+
 - hosts: all
   become: yes
   become_user: hadoop
