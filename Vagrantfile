@@ -6,8 +6,7 @@ Vagrant.configure(2) do |config|
   SLAVES = 3
 
   config.vm.box = "bento/centos-7.1"
-  config.vm.provision "shell", path: "network.sh"
-  config.vm.provision "shell", path: "hadoop.sh"
+  config.vm.provision "ansible", playbook: "playbook.yml"
 
   MASTERS.times do |n|
     config.vm.define "master#{n}" do |node| 

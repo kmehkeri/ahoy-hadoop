@@ -1,0 +1,50 @@
+---
+- hosts: all
+  become: yes
+
+  handlers:
+    - name: Restart Network Manager
+      service: name=NetworkManager state=restarted
+
+    - name: Restart network
+      service: name=network state=restarted
+
+  tasks:
+    - name: Copy hosts file
+      copy: src=hosts dest=/etc/hosts
+      notify:
+        - Restart Network Manager
+        - Restart network
+
+    - name: Create hadoop user
+      user: name=hadoop
+
+- hosts: all
+  become: yes
+  become_user: hadoop
+
+  tasks:
+    - name: Ensure .ssh directory exists
+      file: path=~/.ssh state=directory
+
+    - name: Manage ssh keys
+      copy: src={{item.name}} dest=~/.ssh mode={{item.mode}}
+      with_items:
+        - { name: config, mode: "0600" }
+        - { name: id_rsa, mode: "0600" }
+        - { name: id_rsa.pub, mode: "0644" }
+
+    - name: Authorize ssh key
+      authorized_key: user=hadoop key={{lookup('file', 'id_rsa.pub')}}
+
+    - name: Download Hadoop base package
+      become: yes
+      become_user: root
+      get_url:
+        url: http://ftp.piotrkosoft.net/pub/mirrors/ftp.apache.org/hadoop/common/hadoop-2.7.3/hadoop-2.7.3.tar.gz
+        dest: /vagrant/downloads/hadoop-2.7.3.tar.gz
+        checksum: sha1:B84B898934269C68753E4E036D21395E5A4AB5B1
+
+    - name: Unarchive Hadoop
+      unarchive: remote_src=yes src=/vagrant/downloads/hadoop-2.7.3.tar.gz dest=~ creates=~/hadoop-2.7.3
+
