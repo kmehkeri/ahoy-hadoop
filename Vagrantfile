@@ -6,7 +6,12 @@ Vagrant.configure(2) do |config|
   SLAVES = 2
 
   config.vm.box = "bento/centos-7.1"
-  config.vm.provision "ansible", playbook: "playbook.yml"
+  config.vm.provision "ansible" do |a|
+    a.playbook = "playbook.yml"
+    a.groups = { masters: MASTERS.times.collect { |i| "master#{i}" },
+                 slaves: SLAVES.times.collect { |i| "slave#{i}" } }
+  end
+
 
   if Vagrant.has_plugin?('vagrant-cachier')
     config.cache.scope = :box

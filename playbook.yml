@@ -25,6 +25,10 @@
         - vim
         - java
 
+    - name: Configure variables for Java
+      copy: src=java.sh dest=/etc/profile.d
+
+
 - hosts: all
   become: yes
   become_user: hadoop
@@ -43,6 +47,14 @@
     - name: Authorize ssh key
       authorized_key: user=hadoop key={{lookup('file', 'id_rsa.pub')}}
 
+    - name: Manage .bashrc
+      blockinfile:
+        dest: ~/.bashrc
+        block: |
+          PS1="\e[0;36m[\A] \e[1;32m\u@\h \e[1;34m\w \$ \e[0m"
+          export HADOOP_HOME=/home/hadoop/hadoop-2.7.3
+          export PATH=${PATH}:${HADOOP_HOME}/bin:${HADOOP_HOME}/sbin
+
     - name: Download Hadoop base package
       become: yes
       become_user: root
@@ -52,5 +64,54 @@
         checksum: sha1:B84B898934269C68753E4E036D21395E5A4AB5B1
 
     - name: Unarchive Hadoop
-      unarchive: remote_src=yes src=/vagrant/downloads/hadoop-2.7.3.tar.gz dest=~ creates=~/hadoop-2.7.3
+      unarchive: remote_src=yes src=/vagrant/downloads/hadoop-2.7.3.tar.gz dest=~ creates=/home/hadoop/hadoop-2.7.3/README.txt keep_newer=yes
+
+    - name: Configure Hadoop
+      copy: src=hadoop/ dest=~/hadoop-2.7.3/etc/hadoop
+
+
+- hosts: masters
+  become: yes
+  become_user: hadoop
+
+  tasks:
+    - name: Format HDFS
+      shell: source ~/.bashrc && hdfs namenode -format  creates=/tmp/hadoop-hadoop/dfs/name/current
+
+    - name: Start NameNode
+      shell: source ~/.bashrc && hadoop-daemon.sh start namenode
+      register: result
+      changed_when: "result.rc == 0"
+      failed_when: "result.rc != 0 and 'namenode running as process' not in result.stdout"
+
+    - name: Start Secondary NameNode
+      shell: source ~/.bashrc && hadoop-daemon.sh start secondarynamenode
+      register: result
+      changed_when: "result.rc == 0"
+      failed_when: "result.rc != 0 and 'secondarynamenode running as process' not in result.stdout"
+
+
+- hosts: slaves
+  become: yes
+  become_user: hadoop
+
+  tasks:
+    - name: Start DataNode
+      shell: source ~/.bashrc && hadoop-daemon.sh start datanode
+      register: result
+      changed_when: "result.rc == 0"
+      failed_when: "result.rc != 0 and 'datanode running as process' not in result.stdout"
+
+
+- hosts: all
+
+  tasks:
+    - name: Manage .bashrc
+      blockinfile:
+        dest: ~/.bashrc
+        block: |
+          PS1="\e[0;36m[\A] \e[1;32m\u@\h \e[1;34m\w \$ \e[0m"
+          export HADOOP_HOME=/home/hadoop/hadoop-2.7.3
+          export PATH=${PATH}:${HADOOP_HOME}/bin
+          alias h='sudo su hadoop'
 
