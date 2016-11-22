@@ -22,11 +22,27 @@
 		<value>node0:50070</value>
 	</property>
 	<property>
+		<name>dfs.namenode.name.dir</name>
+		<value>/data/namenode</value>
+	</property>
+	<property>
 		<name>dfs.namenode.secondary.http-address</name>
 		<value>node1:50090</value>
 	</property>
 	<property>
+		<name>dfs.namenode.checkpoint.dir</name>
+		<value>/data/secondarynamenode</value>
+	</property>
+	<property>
+		<name>dfs.datanode.data.dir</name>
+		<value>/data/datanode</value>
+	</property>
+	<property>
 		<name>dfs.replication</name>
 		<value>2</value>
+	</property>
+	<property>
+		<name>dfs.permissions.supergroup</name>
+		<value>hadoop</value>
 	</property>
 </configuration>

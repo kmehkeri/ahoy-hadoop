@@ -16,9 +16,6 @@
         - Restart Network Manager
         - Restart network
 
-    #- name: Create hadoop user
-    #  user: name=hadoop
-
     - name: Add Cloudera repository
       yum_repository:
         name: cloudera-cdh5
@@ -41,6 +38,29 @@
     - name: Configure Hadoop
       copy: src=hadoop/ dest=/etc/hadoop/conf
 
+    - name: Prepare data directory
+      file: path=/data state=directory
+
+    - name: Manage .bashrc
+      blockinfile:
+        dest: ~/.bashrc
+        block: |
+          PS1="\e[0;36m[\A] \e[1;31m\u@\h \e[1;34m\w \$ \e[0m"
+
+### To be checked if ssh config is required
+#    - name: Ensure .ssh directory exists
+#      file: path=~/.ssh state=directory
+#
+#    - name: Manage ssh keys
+#      copy: src=ssh/{{item.name}} dest=~/.ssh mode={{item.mode}}
+#      with_items:
+#        - { name: config, mode: "0600" }
+#        - { name: id_rsa, mode: "0600" }
+#        - { name: id_rsa.pub, mode: "0644" }
+#
+#    - name: Authorize ssh key
+#      authorized_key: user=hadoop key={{lookup('file', 'ssh/id_rsa.pub')}}
+
 
 - hosts: zookeepers
   become: yes
@@ -52,13 +72,13 @@
        - zookeeper-server
 
     - name: Configure Zookeeper
-      copy: src=zookeeper/zoo.cfg dest=/etc/zookeeper
+      copy: src=zookeeper/zoo.cfg dest=/etc/zookeeper/conf
 
     - name: Create Zookeeper data directory
-      file: path=/var/lib/zookeeper/data state=directory owner=zookeeper group=zookeeper
+      file: path=/data/zookeeper state=directory owner=zookeeper group=zookeeper mode=0700
 
     - name: Create Zookeeper id
-      shell: service zookeeper-server init --myid=$(echo -n $(hostname) | tail -c 1)  creates=/var/lib/zookeeper/myid
+      shell: service zookeeper-server init --myid=$(echo -n $(hostname) | tail -c 1)  creates=/data/zookeeper/myid
 
     - name: Start Zookeeper
       service: name=zookeeper-server enabled=yes state=started
@@ -73,13 +93,30 @@
       with_items:
         - hadoop-hdfs-namenode
 
+    - name: Prepare namenode directory
+      file: path=/data/namenode state=directory owner=hdfs group=hdfs
+
     - name: Format HDFS
-      shell: hdfs namenode -format  creates=/tmp/hadoop-hdfs/dfs/name/current
+      shell: hdfs namenode -format  creates=/data/namenode/current
       become: yes
       become_user: hdfs
 
     - name: Start Namenode
       service: name=hadoop-hdfs-namenode enabled=yes state=started
+
+    - name: Create /tmp directory in HDFS
+      command: hdfs dfs -mkdir /tmp
+      become: yes
+      become_user: hdfs
+      register: create_tmp
+      failed_when: "create_tmp.rc != 0 and 'File exists' not in create_tmp.stderr"
+      changed_when: "create_tmp.rc == 0 and 'File exists' not in create_tmp.stderr"
+
+    - name: Set permissions on /tmp
+      command: hdfs dfs -chmod 1777 /tmp
+      become: yes
+      become_user: hdfs
+      when: create_tmp.changed
 
 
 - hosts: secondary_namenodes
@@ -90,6 +127,9 @@
       yum: name={{item}} state=present
       with_items:
         - hadoop-hdfs-secondarynamenode
+
+    - name: Prepare namenode directory
+      file: path=/data/secondarynamenode state=directory owner=hdfs group=hdfs mode=0700
 
     - name: Start Secondary Namenode
       service: name=hadoop-hdfs-secondarynamenode enabled=yes state=started
@@ -116,70 +156,23 @@
         - hadoop-hdfs-datanode
         - hadoop-mapreduce
 
+    - name: Prepare datanode directory
+      file: path=/data/datanode state=directory owner=hdfs group=hdfs mode=0700
+
     - name: Start Datanode
       service: name=hadoop-hdfs-datanode enabled=yes state=started
-
-
-#- hosts: all
-#  become: yes
-#  become_user: hadoop
-#
-#  tasks:
-#    - name: Ensure .ssh directory exists
-#      file: path=~/.ssh state=directory
-#
-#    - name: Manage ssh keys
-#      copy: src=ssh/{{item.name}} dest=~/.ssh mode={{item.mode}}
-#      with_items:
-#        - { name: config, mode: "0600" }
-#        - { name: id_rsa, mode: "0600" }
-#        - { name: id_rsa.pub, mode: "0644" }
-#
-#    - name: Authorize ssh key
-#      authorized_key: user=hadoop key={{lookup('file', 'ssh/id_rsa.pub')}}
-#
-#    - name: Manage .bashrc
-#      blockinfile:
-#        dest: ~/.bashrc
-#        block: |
-#          PS1="\e[0;36m[\A] \e[1;32m\u@\h \e[1;34m\w \$ \e[0m"
-#          export HADOOP_HOME=/home/hadoop/hadoop-2.7.3
-#          export PATH=${PATH}:${HADOOP_HOME}/bin:${HADOOP_HOME}/sbin
-#
-
-
-- hosts: none
-
-  tasks:
-
-    - name: Start NameNode
-      shell: source ~/.bashrc && hadoop-daemon.sh start namenode
-      register: result
-      changed_when: "result.rc == 0"
-      failed_when: "result.rc != 0 and 'namenode running as process' not in result.stdout"
-
-    - name: Start Secondary NameNode
-      shell: source ~/.bashrc && hadoop-daemon.sh start secondarynamenode
-      register: result
-      changed_when: "result.rc == 0"
-      failed_when: "result.rc != 0 and 'secondarynamenode running as process' not in result.stdout"
-
-    - name: Start DataNode
-      shell: source ~/.bashrc && hadoop-daemon.sh start datanode
-      register: result
-      changed_when: "result.rc == 0"
-      failed_when: "result.rc != 0 and 'datanode running as process' not in result.stdout"
 
 
 - hosts: all
 
   tasks:
+    - name: Have vagrant in hadoop group
+      user: name=vagrant groups=hadoop append=yes
+      become: yes
+
     - name: Manage .bashrc
       blockinfile:
         dest: ~/.bashrc
         block: |
-          PS1="\e[0;36m[\A] \e[1;32m\u@\h \e[1;34m\w \$ \e[0m"
-          export HADOOP_HOME=/home/hadoop/hadoop-2.7.3
-          export PATH=${PATH}:${HADOOP_HOME}/bin
-          alias h='sudo su hadoop'
+          PS1="\e[0;36m[\A] \e[1;35m\u@\h \e[1;34m\w \$ \e[0m"
 
