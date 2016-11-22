@@ -1,11 +1,13 @@
 127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
 ::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
-192.168.33.10 master0
-192.168.33.11 master1
-192.168.33.12 master2
-192.168.33.20 slave0
-192.168.33.21 slave1
-192.168.33.22 slave2
-192.168.33.23 slave3
-192.168.33.24 slave4
+192.168.33.10 node0
+192.168.33.11 node1
+192.168.33.12 node2
+192.168.33.13 node3
+192.168.33.14 node4
+192.168.33.15 node5
+192.168.33.16 node6
+192.168.33.17 node7
+192.168.33.18 node8
+192.168.33.19 node9
 

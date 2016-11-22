@@ -19,11 +19,11 @@
 <configuration>
 	<property>
 		<name>dfs.namenode.http-address</name>
-		<value>master0:50070</value>
+		<value>node0:50070</value>
 	</property>
 	<property>
 		<name>dfs.namenode.secondary.http-address</name>
-		<value>master0:50090</value>
+		<value>node1:50090</value>
 	</property>
 	<property>
 		<name>dfs.replication</name>

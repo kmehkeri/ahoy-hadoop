@@ -2,34 +2,29 @@
 # vi: set ft=ruby :
 
 Vagrant.configure(2) do |config|
-  MASTERS = 1
-  SLAVES = 2
+  NODES = 5 # minimum 3
+  GROUPS = {
+    zookeepers: ['node0', 'node1', 'node2'],
+    namenodes: ['node0'],
+    secondary_namenodes: ['node1'],
+	resource_managers: ['node0'],
+    workers: NODES.times.collect { |i| "node#{i}" }
+  }
 
   config.vm.box = "bento/centos-7.1"
-  config.vm.provision "ansible" do |a|
-    a.playbook = "playbook.yml"
-    a.groups = { masters: MASTERS.times.collect { |i| "master#{i}" },
-                 slaves: SLAVES.times.collect { |i| "slave#{i}" } }
-  end
-
 
   if Vagrant.has_plugin?('vagrant-cachier')
     config.cache.scope = :box
     config.cache.enable :yum
   end
-
-  MASTERS.times do |n|
-    config.vm.define "master#{n}" do |node| 
-      node.vm.hostname = "master#{n}"
+  
+  NODES.times do |n|
+    config.vm.define "node#{n}", primary: (n == 0) do |node| 
+      node.vm.hostname = "node#{n}"
       node.vm.network "private_network", ip: "192.168.33.1#{n}"
     end
   end
 
-  SLAVES.times do |n|
-    config.vm.define "slave#{n}" do |node| 
-      node.vm.hostname = "slave#{n}"
-      node.vm.network "private_network", ip: "192.168.33.2#{n}"
-    end
-  end
+  config.vm.provision "ansible", playbook: "playbook.yml", groups: GROUPS
 end
 
