@@ -45,7 +45,7 @@
       blockinfile:
         dest: ~/.bashrc
         block: |
-          PS1="\e[0;36m[\A] \e[1;31m\u@\h \e[1;34m\w \$ \e[0m"
+          PS1='\[\e[0;36m\][\A] \[\e[1;31m\]\u@\h \[\e[1;34m\]\w \$ \[\e[0m\]'
 
 ### To be checked if ssh config is required
 #    - name: Ensure .ssh directory exists
@@ -193,5 +193,5 @@
       blockinfile:
         dest: ~/.bashrc
         block: |
-          PS1="\e[0;36m[\A] \e[1;35m\u@\h \e[1;34m\w \$ \e[0m"
+          PS1='\[\e[0;36m\][\A] \[\e[1;35m\]\u@\h \[\e[1;34m\]\w \$ \[\e[0m\]'
 
