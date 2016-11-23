@@ -8,6 +8,7 @@ Vagrant.configure(2) do |config|
     namenodes: ['node0'],
     secondary_namenodes: ['node1'],
     resource_managers: ['node0'],
+    job_history_servers: ['node0'],
     workers: NODES.times.collect { |i| "node#{i}" }
   }
 
@@ -27,6 +28,7 @@ Vagrant.configure(2) do |config|
       node.vm.hostname = node_name
       node.vm.network "private_network", ip: node_ip
       node.vm.network "forwarded_port", guest_ip: node_ip, guest: 50070, host: 50070 if GROUPS[:namenodes].include?(node_name)
+      node.vm.network "forwarded_port", guest_ip: node_ip, guest: 8088, host: 8088 if GROUPS[:resource_managers].include?(node_name)
     end
   end
 

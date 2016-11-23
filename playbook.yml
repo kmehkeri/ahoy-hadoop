@@ -144,6 +144,22 @@
       with_items:
         - hadoop-yarn-resourcemanager
 
+    - name: Start Resource Manager
+      service: name=hadoop-yarn-resourcemanager enabled=yes state=started
+
+
+- hosts: job_history_servers
+  become: yes
+
+  tasks:
+    - name: Install packages
+      yum: name={{item}} state=present
+      with_items:
+        - hadoop-mapreduce-historyserver
+
+    - name: Start Job History Server
+      service: name=hadoop-mapreduce-historyserver enabled=yes state=started
+
 
 - hosts: workers
   become: yes
@@ -161,6 +177,9 @@
 
     - name: Start Datanode
       service: name=hadoop-hdfs-datanode enabled=yes state=started
+
+    - name: Start Node Manager
+      service: name=hadoop-yarn-nodemanager enabled=yes state=started
 
 
 - hosts: all
