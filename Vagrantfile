@@ -12,7 +12,8 @@ Vagrant.configure(2) do |config|
     yarn_resource_managers: ['node0'],
     yarn_node_managers: ALL,
     mapred_job_history_servers: ['node0'],
-    workers: ALL
+    hbase_masters: ['node0'],
+    hbase_regionservers: ALL
   }
 
   config.vm.box = "bento/centos-7.1"

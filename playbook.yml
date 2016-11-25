@@ -177,6 +177,52 @@
       service: name=hadoop-mapreduce-historyserver enabled=yes state=started
 
 
+- hosts: hbase_masters
+  become: yes
+
+  tasks:
+    - name: Install packages
+      yum: name={{item}} state=present
+      with_items:
+        - hbase-master
+
+    - name: Configure HBase
+      copy: src=hbase/ dest=/etc/hbase/conf
+
+    - name: Create /hbase directory in HDFS
+      command: hdfs dfs -mkdir /hbase
+      become: yes
+      become_user: hdfs
+      register: create_hbase_dir
+      failed_when: "create_hbase_dir.rc != 0 and 'File exists' not in create_hbase_dir.stderr"
+      changed_when: "create_hbase_dir.rc == 0 and 'File exists' not in create_hbase_dir.stderr"
+
+    - name: Set owner for /hbase
+      command: hdfs dfs -chown hbase /hbase
+      become: yes
+      become_user: hdfs
+      when: create_hbase_dir.changed
+
+    - name: Start HBase Master
+      service: name=hbase-master enabled=yes state=started
+
+
+- hosts: hbase_regionservers
+  become: yes
+
+  tasks:
+    - name: Install packages
+      yum: name={{item}} state=present
+      with_items:
+        - hbase-regionserver
+
+    - name: Configure HBase
+      copy: src=hbase/ dest=/etc/hbase/conf
+
+    - name: Start HBase Regionserver
+      service: name=hbase-regionserver enabled=yes state=started
+
+
 - hosts: all
 
   tasks:
