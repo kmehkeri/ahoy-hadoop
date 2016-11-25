@@ -48,6 +48,27 @@
           PS1='\[\e[0;36m\][\A] \[\e[1;31m\]\u@\h \[\e[1;34m\]\w \$ \[\e[0m\]'
 
 
+- hosts: postgresql_servers
+  become: yes
+
+  tasks:
+    - name: Install PostgreSQL
+      yum: name={{item}} state=present
+      with_items:
+        - postgresql-server
+        - postgresql-libs
+        - python-psycopg2
+
+    - name: Initialize PostgreSQL
+      command: postgresql-setup initdb  creates=/var/lib/pgsql/data/pg_hba.conf
+
+    - name: Configure PostgreSQL
+      copy: src=postgresql/ dest=/var/lib/pgsql/data
+
+    - name: Start PostgreSQL server
+      service: name=postgresql enabled=yes state=started
+
+
 - hosts: zookeepers
   become: yes
   
@@ -103,6 +124,14 @@
       become: yes
       become_user: hdfs
       when: create_tmp.changed
+
+    - name: Create /user directory in HDFS
+      command: hdfs dfs -mkdir /user
+      become: yes
+      become_user: hdfs
+      register: create_user
+      failed_when: "create_user.rc != 0 and 'File exists' not in create_user.stderr"
+      changed_when: "create_user.rc == 0 and 'File exists' not in create_user.stderr"
 
 
 - hosts: hdfs_secondary_namenodes
@@ -221,6 +250,79 @@
 
     - name: Start HBase Regionserver
       service: name=hbase-regionserver enabled=yes state=started
+
+
+- hosts: hive_servers
+  become: yes
+
+  tasks:
+    - name: Create PostgreSQL user for Hive
+      postgresql_user: name=hive password=vagrant
+      become_user: postgres
+    
+    - name: Create PostgreSQL database for Hive Metastore
+      postgresql_db: name=metastore encoding=UTF-8 owner=hive
+      become_user: postgres
+
+    - name: Install packages
+      yum: name={{item}} state=present
+      with_items:
+        - hive
+        - hive-server2
+        - hive-metastore
+        - hive-hbase
+        - postgresql-jdbc
+
+    - name: Create symbolic link for postgresql-jdbc
+      file: name=/usr/lib/hive/lib/postgresql-jdbc.jar state=link src=/usr/share/java/postgresql-jdbc.jar
+
+    - name: Check Metastore schema
+      shell: PGPASSWORD=vagrant psql -h 127.0.0.1 -U hive -d metastore -c "\d" -t
+      register: metastore_schema_check
+      changed_when: 'false'
+
+    - name: Create Metastore schema
+      shell: PGPASSWORD=vagrant psql -h 127.0.0.1 -U hive -d metastore -c "\i /usr/lib/hive/scripts/metastore/upgrade/postgres/hive-schema-$(ls /usr/lib/hive/scripts/metastore/upgrade/postgres/hive-schema* | sed 's/.*hive-schema-\(.*\).postgres.sql/\1/' | sort -n -t'.' -k1 -k2 -k3 | tail -1).postgres.sql"
+      when: "'VERSION' not in metastore_schema_check.stdout"
+      register: metastore_schema
+      failed_when: "metastore_schema.rc != 0 or 'ERROR' in metastore_schema.stderr"
+
+    - name: Configure Hive
+      copy: src=hive/ dest=/etc/hive/conf
+
+    - name: Start Hive Metastore
+      service: name=hive-metastore enabled=yes state=started
+
+    - name: Create /user/hive directory in HDFS
+      command: hdfs dfs -mkdir /user/hive
+      become: yes
+      become_user: hdfs
+      register: hdfs_create_hive
+      failed_when: "hdfs_create_hive.rc != 0 and 'File exists' not in hdfs_create_hive.stderr"
+      changed_when: "hdfs_create_hive.rc == 0 and 'File exists' not in hdfs_create_hive.stderr"
+
+    - name: Set owner for /user/hive
+      command: hdfs dfs -chown hive /user/hive
+      become: yes
+      become_user: hdfs
+      when: hdfs_create_hive.changed
+
+    - name: Create /user/hive/warehouse directory in HDFS
+      command: hdfs dfs -mkdir /user/hive/warehouse
+      become: yes
+      become_user: hdfs
+      register: hdfs_create_warehouse
+      failed_when: "hdfs_create_warehouse.rc != 0 and 'File exists' not in hdfs_create_warehouse.stderr"
+      changed_when: "hdfs_create_warehouse.rc == 0 and 'File exists' not in hdfs_create_warehouse.stderr"
+
+    - name: Set owner for /user/hive/warehouse
+      command: hdfs dfs -chown hive /user/hive/warehouse
+      become: yes
+      become_user: hdfs
+      when: hdfs_create_warehouse.changed
+
+    - name: Start Hive Server
+      service: name=hive-server2 enabled=yes state=started
 
 
 - hosts: all

@@ -5,6 +5,7 @@ Vagrant.configure(2) do |config|
   NODES = 5 # minimum 3
   ALL = NODES.times.collect { |i| "node#{i}" }
   GROUPS = {
+    postgresql_servers: ['node0'],
     zookeepers: ['node0', 'node1', 'node2'],
     hdfs_namenodes: ['node0'],
     hdfs_secondary_namenodes: ['node1'],
@@ -13,7 +14,8 @@ Vagrant.configure(2) do |config|
     yarn_node_managers: ALL,
     mapred_job_history_servers: ['node0'],
     hbase_masters: ['node0'],
-    hbase_regionservers: ALL
+    hbase_regionservers: ALL,
+    hive_servers: ['node0']
   }
 
   config.vm.box = "bento/centos-7.1"
