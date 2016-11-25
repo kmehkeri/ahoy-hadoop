@@ -179,7 +179,7 @@
       service: name=hadoop-yarn-resourcemanager enabled=yes state=started
 
 
-- hosts: yarn_nodemanagers
+- hosts: yarn_node_managers
   become: yes
 
   tasks:
