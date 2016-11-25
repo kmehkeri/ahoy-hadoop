@@ -3,13 +3,16 @@
 
 Vagrant.configure(2) do |config|
   NODES = 5 # minimum 3
+  ALL = NODES.times.collect { |i| "node#{i}" }
   GROUPS = {
     zookeepers: ['node0', 'node1', 'node2'],
-    namenodes: ['node0'],
-    secondary_namenodes: ['node1'],
-    resource_managers: ['node0'],
-    job_history_servers: ['node0'],
-    workers: NODES.times.collect { |i| "node#{i}" }
+    hdfs_namenodes: ['node0'],
+    hdfs_secondary_namenodes: ['node1'],
+    hdfs_datanodes: ALL,
+    yarn_resource_managers: ['node0'],
+    yarn_node_managers: ALL,
+    mapred_job_history_servers: ['node0'],
+    workers: ALL
   }
 
   config.vm.box = "bento/centos-7.1"
@@ -27,8 +30,8 @@ Vagrant.configure(2) do |config|
     config.vm.define node_name, primary: node_primary do |node| 
       node.vm.hostname = node_name
       node.vm.network "private_network", ip: node_ip
-      node.vm.network "forwarded_port", guest_ip: node_ip, guest: 50070, host: 50070 if GROUPS[:namenodes].include?(node_name)
-      node.vm.network "forwarded_port", guest_ip: node_ip, guest: 8088, host: 8088 if GROUPS[:resource_managers].include?(node_name)
+      node.vm.network "forwarded_port", guest_ip: node_ip, guest: 50070, host: 50070 if GROUPS[:hdfs_namenodes].include?(node_name)
+      node.vm.network "forwarded_port", guest_ip: node_ip, guest: 8088, host: 8088 if GROUPS[:yarn_resource_managers].include?(node_name)
     end
   end
 

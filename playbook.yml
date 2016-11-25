@@ -47,20 +47,6 @@
         block: |
           PS1='\[\e[0;36m\][\A] \[\e[1;31m\]\u@\h \[\e[1;34m\]\w \$ \[\e[0m\]'
 
-### To be checked if ssh config is required
-#    - name: Ensure .ssh directory exists
-#      file: path=~/.ssh state=directory
-#
-#    - name: Manage ssh keys
-#      copy: src=ssh/{{item.name}} dest=~/.ssh mode={{item.mode}}
-#      with_items:
-#        - { name: config, mode: "0600" }
-#        - { name: id_rsa, mode: "0600" }
-#        - { name: id_rsa.pub, mode: "0644" }
-#
-#    - name: Authorize ssh key
-#      authorized_key: user=hadoop key={{lookup('file', 'ssh/id_rsa.pub')}}
-
 
 - hosts: zookeepers
   become: yes
@@ -84,7 +70,7 @@
       service: name=zookeeper-server enabled=yes state=started
 
 
-- hosts: namenodes
+- hosts: hdfs_namenodes
   become: yes
 
   tasks:
@@ -119,7 +105,7 @@
       when: create_tmp.changed
 
 
-- hosts: secondary_namenodes
+- hosts: hdfs_secondary_namenodes
   become: yes
 
   tasks:
@@ -135,7 +121,23 @@
       service: name=hadoop-hdfs-secondarynamenode enabled=yes state=started
 
 
-- hosts: resource_managers
+- hosts: hdfs_datanodes
+  become: yes
+
+  tasks:
+    - name: Install packages
+      yum: name={{item}} state=present
+      with_items:
+        - hadoop-hdfs-datanode
+
+    - name: Prepare datanode directory
+      file: path=/data/datanode state=directory owner=hdfs group=hdfs mode=0700
+
+    - name: Start Datanode
+      service: name=hadoop-hdfs-datanode enabled=yes state=started
+
+
+- hosts: yarn_resource_managers
   become: yes
 
   tasks:
@@ -148,7 +150,21 @@
       service: name=hadoop-yarn-resourcemanager enabled=yes state=started
 
 
-- hosts: job_history_servers
+- hosts: yarn_nodemanagers
+  become: yes
+
+  tasks:
+    - name: Install packages
+      yum: name={{item}} state=present
+      with_items:
+        - hadoop-yarn-nodemanager
+        - hadoop-mapreduce
+
+    - name: Start Node Manager
+      service: name=hadoop-yarn-nodemanager enabled=yes state=started
+
+
+- hosts: mapred_job_history_servers
   become: yes
 
   tasks:
@@ -159,27 +175,6 @@
 
     - name: Start Job History Server
       service: name=hadoop-mapreduce-historyserver enabled=yes state=started
-
-
-- hosts: workers
-  become: yes
-
-  tasks:
-    - name: Install packages
-      yum: name={{item}} state=present
-      with_items:
-        - hadoop-yarn-nodemanager
-        - hadoop-hdfs-datanode
-        - hadoop-mapreduce
-
-    - name: Prepare datanode directory
-      file: path=/data/datanode state=directory owner=hdfs group=hdfs mode=0700
-
-    - name: Start Datanode
-      service: name=hadoop-hdfs-datanode enabled=yes state=started
-
-    - name: Start Node Manager
-      service: name=hadoop-yarn-nodemanager enabled=yes state=started
 
 
 - hosts: all
