@@ -31,6 +31,11 @@ Vagrant.configure(2) do |config|
     node_primary = (n == 0)
 
     config.vm.define node_name, primary: node_primary do |node| 
+      node.vm.provider :virtualbox do |vb|
+        vb.memory = 2048
+        vb.cpus = 1
+      end
+
       node.vm.hostname = node_name
       node.vm.network "private_network", ip: node_ip
       node.vm.network "forwarded_port", guest_ip: node_ip, guest: 50070, host: 50070 if GROUPS[:hdfs_namenodes].include?(node_name)
