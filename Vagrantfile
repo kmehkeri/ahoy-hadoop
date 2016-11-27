@@ -2,7 +2,7 @@
 # vi: set ft=ruby :
 
 Vagrant.configure(2) do |config|
-  NODES = 5 # minimum 3
+  NODES = 5 # adjustable in range 3 .. 9
   ALL = NODES.times.collect { |i| "node#{i}" }
   GROUPS = {
     postgresql_servers: ['node0'],
@@ -34,6 +34,7 @@ Vagrant.configure(2) do |config|
 
     config.vm.define node_name, primary: node_primary do |node| 
       node.vm.provider :virtualbox do |vb|
+        # Adjustable to host capabilities and number of nodes
         vb.memory = 2048
         vb.cpus = 1
       end
