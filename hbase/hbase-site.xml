@@ -33,4 +33,12 @@
 		<name>hbase.rootdir</name>
 		<value>hdfs://node0:9000/hbase</value>
 	</property>
+	<property>
+		<name>hbase.regionserver.thrift.http</name>
+		<value>true</value>
+	</property>
+	<property>
+		<name>hbase.thrift.support.proxyuser</name>
+		<value>true</value>
+	</property>
 </configuration>

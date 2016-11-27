@@ -236,6 +236,19 @@
       service: name=hbase-master enabled=yes state=started
 
 
+- hosts: hbase_thrift_servers
+  become: yes
+
+  tasks:
+    - name: Install packages
+      yum: name={{item}} state=present
+      with_items:
+        - hbase-thrift
+
+    - name: Start HBase Thrift
+      service: name=hbase-thrift enabled=yes state=started
+
+
 - hosts: hbase_regionservers
   become: yes
 
@@ -323,6 +336,26 @@
 
     - name: Start Hive Server
       service: name=hive-server2 enabled=yes state=started
+
+
+- hosts: hue_servers
+  become: yes
+
+  tasks:
+    - name: Install packages
+      yum: name={{item}} state=present
+      with_items:
+        - hue
+
+    - name: Fix Hue rc script
+      lineinfile: "dest=/etc/init.d/hue regexp='^# pidfile:' line='# pidfile: /var/run/hue/supervisor.pid'"
+
+    - name: Configure Hue
+      copy: src=hue/ dest=/etc/hue/conf
+
+    - name: Start Hue
+      service: name=hue enabled=yes state=started
+      ignore_errors: true
 
 
 - hosts: all

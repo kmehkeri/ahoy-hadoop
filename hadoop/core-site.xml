@@ -21,4 +21,12 @@
 		<name>fs.default.name</name>
 		<value>hdfs://node0:9000/</value>
 	</property>
+	<property>
+		<name>hadoop.proxyuser.hue.hosts</name>
+		<value>*</value>
+	</property>
+	<property>
+		<name>hadoop.proxyuser.hue.groups</name>
+		<value>*</value>
+	</property>
 </configuration>

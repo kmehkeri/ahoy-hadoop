@@ -14,8 +14,10 @@ Vagrant.configure(2) do |config|
     yarn_node_managers: ALL,
     mapred_job_history_servers: ['node0'],
     hbase_masters: ['node0'],
+    hbase_thrift_servers: ['node0'],
     hbase_regionservers: ALL,
-    hive_servers: ['node0']
+    hive_servers: ['node0'],
+    hue_servers: ['node0']
   }
 
   config.vm.box = "bento/centos-7.1"
@@ -40,6 +42,7 @@ Vagrant.configure(2) do |config|
       node.vm.network "private_network", ip: node_ip
       node.vm.network "forwarded_port", guest_ip: node_ip, guest: 50070, host: 50070 if GROUPS[:hdfs_namenodes].include?(node_name)
       node.vm.network "forwarded_port", guest_ip: node_ip, guest: 8088, host: 8088 if GROUPS[:yarn_resource_managers].include?(node_name)
+      node.vm.network "forwarded_port", guest_ip: node_ip, guest: 8888, host: 8888 if GROUPS[:hue_servers].include?(node_name)
     end
   end
 
