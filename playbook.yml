@@ -341,22 +341,39 @@
 - hosts: hue_servers
   become: yes
 
-  handlers:
-    - name: systemctl daemon-reload
-      command: systemctl daemon-reload
-
   tasks:
     - name: Install packages
       yum: name={{item}} state=present
       with_items:
         - hue
 
-    - name: Fix Hue rc script
-      lineinfile: "dest=/etc/init.d/hue regexp='^# pidfile:' line='# pidfile: /var/run/hue/supervisor.pid'"
-      notify: systemctl daemon-reload
-
     - name: Configure Hue
       copy: src=hue/ dest=/etc/hue/conf
+
+    - name: Create PostgreSQL user for Hue
+      postgresql_user: name=hue password=vagrant
+      become_user: postgres
+
+    - name: Create PostgreSQL database for Hue
+      postgresql_db: name=hue encoding=UTF-8 owner=hue
+      become_user: postgres
+
+    - name: Check PostgreSQL Hue schema
+      shell: PGPASSWORD=vagrant psql -h 127.0.0.1 -U hue -d hue -c "\d" -t
+      register: hue_schema_check
+      changed_when: 'false'
+
+    - name: Create PostgreSQL Hue schema
+      shell: /usr/lib/hue/build/env/bin/hue syncdb --noinput && /usr/lib/hue/build/env/bin/hue migrate
+      when: "'django_site' not in hue_schema_check.stdout"
+
+    - name: Fix Hue rc script
+      lineinfile: "dest=/etc/init.d/hue regexp='^# pidfile:' line='# pidfile: /var/run/hue/supervisor.pid'"
+      register: fix_hue_rc_script
+
+    - name: systemctl daemon-reload
+      command: systemctl daemon-reload
+      when: fix_hue_rc_script.changed
 
     - name: Start Hue
       service: name=hue enabled=yes state=started
