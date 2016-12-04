@@ -341,6 +341,10 @@
 - hosts: hue_servers
   become: yes
 
+  handlers:
+    - name: systemctl daemon-reload
+      command: systemctl daemon-reload
+
   tasks:
     - name: Install packages
       yum: name={{item}} state=present
@@ -349,6 +353,7 @@
 
     - name: Fix Hue rc script
       lineinfile: "dest=/etc/init.d/hue regexp='^# pidfile:' line='# pidfile: /var/run/hue/supervisor.pid'"
+      notify: systemctl daemon-reload
 
     - name: Configure Hue
       copy: src=hue/ dest=/etc/hue/conf
