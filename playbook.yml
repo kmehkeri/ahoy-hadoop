@@ -380,6 +380,17 @@
       ignore_errors: true
 
 
+- hosts: spark_clients
+  become: yes
+
+  tasks:
+    - name: Install packages
+      yum: name={{item}} state=present
+      with_items:
+        - spark-core
+        - spark-python
+
+
 - hosts: all
 
   tasks:
