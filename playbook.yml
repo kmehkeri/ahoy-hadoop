@@ -391,6 +391,19 @@
         - spark-python
 
 
+- hosts: sqoop_clients
+  become: yes
+
+  tasks:
+    - name: Install packages
+      yum: name={{item}} state=present
+      with_items:
+        - sqoop
+
+    - name: Copy JDBC connectors
+      copy: src=sqoop_jdbc/ dest=/var/lib/sqoop owner=sqoop group=sqoop
+
+
 - hosts: all
 
   tasks:

@@ -18,7 +18,8 @@ Vagrant.configure(2) do |config|
     hbase_regionservers: ALL,
     hive_servers: ['node0'],
     hue_servers: ['node0'],
-    spark_clients: ['node0']
+    spark_clients: ['node0'],
+    sqoop_clients: ['node0']
   }
 
   config.vm.box = "bento/centos-7.1"
