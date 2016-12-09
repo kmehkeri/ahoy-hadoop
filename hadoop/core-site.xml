@@ -30,6 +30,14 @@
 		<value>*</value>
 	</property>
 	<property>
+		<name>hadoop.proxyuser.oozie.hosts</name>
+		<value>*</value>
+	</property>
+	<property>
+		<name>hadoop.proxyuser.oozie.groups</name>
+		<value>*</value>
+	</property>
+	<property>
 		<name>hadoop.proxyuser.hue.hosts</name>
 		<value>*</value>
 	</property>

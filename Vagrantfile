@@ -17,6 +17,7 @@ Vagrant.configure(2) do |config|
     hbase_thrift_servers: ['node0'],
     hbase_regionservers: ALL,
     hive_servers: ['node0'],
+    oozie_servers: ['node0'],
     hue_servers: ['node0'],
     spark_clients: ['node0'],
     sqoop_clients: ['node0']

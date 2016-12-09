@@ -338,6 +338,72 @@
       service: name=hive-server2 enabled=yes state=started
 
 
+- hosts: oozie_servers
+  become: yes
+
+  tasks:
+    - name: Install packages
+      yum: name={{item}} state=present
+      with_items:
+        - oozie
+
+    - name: Configure Oozie
+      copy: src=oozie/ dest=/etc/oozie/conf
+
+    - name: Check Hadoop configuration for Oozie
+      stat: path=/etc/oozie/conf/hadoop-conf
+      register: oozie_hadoop_conf
+
+    - name: Remove dummy Hadoop configuration for Oozie
+      file: path=/etc/oozie/conf/hadoop-conf state=absent
+      when: oozie_hadoop_conf.stat.isdir is defined and oozie_hadoop_conf.stat.isdir
+
+    - name: Hadoop configuration for Oozie
+      file: path=/etc/oozie/conf/hadoop-conf state=link src=/etc/hadoop/conf force=true
+
+    - name: Create PostgreSQL user for Oozie
+      postgresql_user: name=oozie password=vagrant
+      become_user: postgres
+
+    - name: Create PostgreSQL database for Oozie
+      postgresql_db: name=oozie encoding=UTF-8 owner=oozie
+      become_user: postgres
+
+    - name: Create Oozie schema
+      shell: /usr/lib/oozie/bin/ooziedb.sh create -run
+      register: oozie_schema
+      changed_when: "oozie_schema.rc == 0"
+      failed_when: "oozie_schema.rc != 0 and 'Error: DB schema exists' not in oozie_schema.stderr"
+
+    - name: Create /user/oozie directory in HDFS
+      command: hdfs dfs -mkdir /user/oozie
+      become: yes
+      become_user: hdfs
+      register: hdfs_create_oozie
+      failed_when: "hdfs_create_oozie.rc != 0 and 'File exists' not in hdfs_create_oozie.stderr"
+      changed_when: "hdfs_create_oozie.rc == 0 and 'File exists' not in hdfs_create_oozie.stderr"
+
+    - name: Set owner for /user/oozie
+      command: hdfs dfs -chown oozie /user/oozie
+      become: yes
+      become_user: hdfs
+      when: hdfs_create_oozie.changed
+
+    - name: Check Oozie sharelib
+      shell: hdfs dfs -test -d '/user/oozie/share/lib/lib*'
+      register: oozie_sharelib_check
+      changed_when: 'false'
+      failed_when: 'false'
+
+    - name: Register Oozie sharelib
+      shell: /usr/lib/oozie/bin/oozie-setup.sh sharelib create -fs hdfs://node0:9000 -locallib /usr/lib/oozie/oozie-sharelib
+      when: "oozie_sharelib_check.rc != 0"
+      become_user: oozie
+
+    - name: Start Oozie Server
+      service: name=oozie enabled=yes state=started
+
+
 - hosts: hue_servers
   become: yes
 
